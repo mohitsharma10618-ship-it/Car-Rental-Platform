@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="card shadow-lg border-0">
+
+    <div class="card-body text-center">
+
+        {% if profile.profile_image %}
+            <img src="{{ profile.profile_image.url }}"
+                 class="rounded-circle mb-3"
+                 width="150"
+                 height="150">
+        {% endif %}
+
+        <h2>{{ request.user.username }}</h2>
+
+        <p>{{ request.user.email }}</p>
+
+        <hr>
+
+        <div class="row">
+
+            <div class="col-md-4">
+                <h4>{{ bookings_count }}</h4>
+                <p>Bookings</p>
+            </div>
+
+            <div class="col-md-4">
+                <h4>{{ wishlist_count }}</h4>
+                <p>Wishlist</p>
+            </div>
+
+            <div class="col-md-4">
+                <h4>{{ review_count }}</h4>
+                <p>Reviews</p>
+            </div>
+
+        </div>
+
+        <hr>
+
+        <p><strong>Phone:</strong> {{ profile.phone }}</p>
+
+        <p><strong>City:</strong> {{ profile.city }}</p>
+
+        <p>
+            <strong>License Number:</strong>
+            {{ profile.driving_license_number }}
+        </p>
+
+        <p>
+            <strong>Verification Status:</strong>
+
+            {% if profile.license_verified %}
+                <span class="badge bg-success">
+                    Verified
+                </span>
+            {% else %}
+                <span class="badge bg-warning">
+                    Pending Verification
+                </span>
+            {% endif %}
+
+            {% if not profile.license_verified %}
+            <div class="alert alert-warning mt-3">
+
+                Your driving license is under review.
+                You will be able to book cars after verification.
+
+            </div>
+            {% endif %}
+        </p>
+
+        <a href="{% url 'update_profile' %}"
+           class="btn btn-primary">
+            Edit Profile
+        </a>
+
+    </div>
+
+</div>
+
+{% endblock %}

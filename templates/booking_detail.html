@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<div class="container mt-5">
+
+    <div class="card shadow-lg border-0">
+
+        <div class="card-header bg-dark text-white">
+
+            <h3 class="mb-0">
+                📄 Booking Details
+            </h3>
+
+        </div>
+
+        <div class="card-body">
+
+            <table class="table table-bordered">
+
+                <tr>
+                    <th>Booking ID</th>
+                    <td>#{{ booking.id }}</td>
+                </tr>
+
+                <tr>
+                    <th>Customer</th>
+                    <td>{{ booking.user.get_full_name|default:booking.user.username }}</td>
+                </tr>
+
+                <tr>
+                    <th>Email</th>
+                    <td>{{ booking.user.email }}</td>
+                </tr>
+
+                <tr>
+                    <th>Booking Created</th>
+                    <td>{{ booking.booked_at|date:"d M Y h:i A" }}</td>
+                </tr>
+
+                <tr>
+                    <th>Car</th>
+                    <td>
+                        {{ booking.car.brand }}
+                        {{ booking.car.model }}
+
+                        <br>
+
+                        <small class="text-muted">
+
+                            ₹{{ booking.car.rent_per_hour }}/hour
+
+                        </small>
+
+                    </td>
+                </tr>
+
+                <tr>
+                    <th>Start Time</th>
+                    <td>
+                        {{ booking.start_time|date:"d M Y h:i A" }}
+                    </td>
+                </tr>
+
+                <tr>
+                    <th>End Time</th>
+                    <td>
+                        {{ booking.end_time|date:"d M Y h:i A" }}
+                    </td>
+                </tr>
+
+                <tr>
+                    <th>Duration</th>
+                    <td>
+                        {{ duration_hours }} Hours
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th>Total Amount</th>
+                    <td>
+                        ₹{{ booking.total_amount }}
+                    </td>
+                </tr>
+
+                <tr>
+                    <th>Status</th>
+                
+                <tr>
+
+                    <th>Pickup Time</th>
+
+                    <td>
+
+                        {% if booking.pickup_time %}
+
+                            {{ booking.pickup_time|date:"d M Y h:i A" }}
+
+                        {% else %}
+
+                            Not Started
+
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+                <tr>
+
+                    <th>Return Time</th>
+
+                    <td>
+
+                        {% if booking.return_time %}
+
+                            {{ booking.return_time|date:"d M Y h:i A" }}
+
+                        {% else %}
+
+                            Not Returned
+
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+                    <td>
+
+                        {% if booking.status == "Upcoming" %}
+
+                            <span class="badge bg-warning text-dark">
+                                Upcoming
+                            </span>
+
+                        {% elif booking.status == "Active" %}
+
+                            <span class="badge bg-success">
+                                Active
+                            </span>
+
+                        {% elif booking.status == "Completed" %}
+
+                            <span class="badge bg-secondary">
+                                Completed
+                            </span>
+
+                        {% elif booking.status == "Cancelled" %}
+
+                            <span class="badge bg-danger">
+                                Cancelled
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+            </table>
+
+            <div class="mt-4">
+
+                {% if booking.status == "Active" and not booking.pickup_time %}
+
+                    <a href="{% url 'start_trip' booking.id %}"
+                    class="btn btn-success">
+
+                        🚗 Start Trip
+
+                    </a>
+
+                {% elif booking.pickup_time and not booking.return_time %}
+
+                    <a href="{% url 'end_trip' booking.id %}"
+                    class="btn btn-danger">
+
+                        🏁 End Trip
+
+                    </a>
+
+                {% endif %}
+                
+                <a href="{% url 'my_bookings' %}"
+                class="btn btn-secondary">
+
+                    ← Back to My Bookings
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

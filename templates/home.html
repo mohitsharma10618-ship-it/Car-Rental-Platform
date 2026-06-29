@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+    <div class="bg-dark text-white text-center p-5 rounded mb-5">
+
+        <h1 class="display-4 fw-bold">
+            🚗 Rent Cars Anytime, Anywhere
+        </h1>
+
+        <p class="lead mt-3">
+            Affordable hourly car rentals with instant online booking.
+        </p>
+
+        <a href="#cars" class="btn btn-warning btn-lg mt-3">
+            Browse Cars
+        </a>
+
+    </div>
+
+    <h1 class="text-center mb-4">Available Cars</h1>
+
+    <form method="GET" class="mb-4">
+
+        <div class="row g-2">
+
+            <div class="col-md-3">
+                <input
+                    type="text"
+                    name="q"
+                    class="form-control"
+                    placeholder="Search car"
+                    value="{{ request.GET.q }}">
+            </div>
+
+            <div class="col-md-2">
+                <input
+                    type="number"
+                    name="min_price"
+                    class="form-control"
+                    placeholder="Min ₹"
+                    value="{{ request.GET.min_price }}">
+            </div>
+
+            <div class="col-md-2">
+                <input
+                    type="number"
+                    name="max_price"
+                    class="form-control"
+                    placeholder="Max ₹"
+                    value="{{ request.GET.max_price }}">
+            </div>
+
+            <div class="col-md-2">
+                <select
+                    name="brand"
+                    class="form-select">
+
+                    <option value="">
+                        All Brands
+                    </option>
+
+                    {% for brand in brands %}
+                        <option
+                            value="{{ brand }}"
+                            {% if request.GET.brand == brand %}
+                            selected
+                            {% endif %}
+                        >
+                            {{ brand }}
+                        </option>
+                    {% endfor %}
+
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <select
+                    name="fuel_type"
+                    class="form-select">
+
+                    <option value="">
+                        Fuel
+                    </option>
+
+                    <option value="Petrol">
+                        Petrol
+                    </option>
+
+                    <option value="Diesel">
+                        Diesel
+                    </option>
+
+                    <option value="Electric">
+                        Electric
+                    </option>
+
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <select
+                    name="transmission"
+                    class="form-select">
+
+                    <option value="">
+                        Transmission
+                    </option>
+
+                    <option value="Manual">
+                        Manual
+                    </option>
+
+                    <option value="Automatic">
+                        Automatic
+                    </option>
+
+                </select>
+            </div>
+
+            <div class="col-md-1">
+                <button
+                    class="btn btn-dark w-100">
+                    Search
+                </button>
+            </div>
+
+        </div>
+    </form>
+
+    <div class="row">
+
+        {% for car in cars %}
+        <div class="col-md-4 mb-4">
+            <div class="card border-0 shadow-lg h-100">
+
+                {% if car.image %}
+                <img src="{{ car.image.url }}"
+                    class="card-img-top"
+                    alt="{{ car.model }}"
+                    style="height:260px; object-fit:cover;">
+                {% endif %}
+
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between align-items-center">
+
+                        <h5 class="fw-bold mb-0">
+                            {{ car.brand }} {{ car.model }}
+                        </h5>
+
+                        {% if car.id in wishlist_car_ids %}
+                            <span class="badge bg-danger">
+                                ❤️
+                            </span>
+                        {% endif %}
+
+                    </div>
+
+                    <small class="text-muted">
+                        {{ car.year }}
+                    </small>
+
+                    <hr>
+
+                    <div class="row text-center">
+
+                        <div class="col-6 mb-2">
+                            ⛽ {{ car.fuel_type }}
+                        </div>
+
+                        <div class="col-6 mb-2">
+                            ⚙️ {{ car.transmission }}
+                        </div>
+
+                        <div class="col-6 mb-2">
+                            👥 {{ car.seats }} Seats
+                        </div>
+
+                        <div class="col-6 mb-2">
+                            ❄️ {% if car.ac %}AC{% else %}Non AC{% endif %}
+                        </div>
+
+                    </div>
+
+                    <p class="mt-2 mb-2">
+                        📍 {{ car.location }}
+                    </p>
+
+                    <div class="d-flex justify-content-between align-items-center">
+
+                        <span class="fw-bold text-success fs-5">
+                            ₹{{ car.rent_per_hour }}/hr
+                        </span>
+
+                        {% if car.available %}
+                            <span class="badge bg-success">
+                                Available
+                            </span>
+                        {% else %}
+                            <span class="badge bg-danger">
+                                Unavailable
+                            </span>
+                        {% endif %}
+
+                    </div>
+
+                    <div class="d-grid mt-3">
+                        <a href="{% url 'car_detail' car.id %}"
+                        class="btn btn-dark">
+                            View Details
+                        </a>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+        {% endfor %}
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h2>Edit Profile</h2>
+
+<form method="POST"
+      enctype="multipart/form-data">
+
+    {% csrf_token %}
+
+    <div class="mb-3">
+        <label>Phone</label>
+        <input type="text"
+               name="phone"
+               class="form-control"
+               value="{{ profile.phone }}">
+    </div>
+
+    <div class="mb-3">
+        <label>City</label>
+        <input type="text"
+               name="city"
+               class="form-control"
+               value="{{ profile.city }}">
+    </div>
+
+    <div class="mb-3">
+        <label>Date of Birth</label>
+        <input type="date"
+               name="date_of_birth"
+               class="form-control"
+               value="{{ profile.date_of_birth|date:'Y-m-d' }}">
+    </div>
+
+    <div class="mb-3">
+        <label>Driving License Number</label>
+        <input type="text"
+               name="driving_license_number"
+               class="form-control"
+               value="{{ profile.driving_license_number }}">
+    </div>
+
+    <div class="mb-3">
+        <label>Profile Photo</label>
+        <input type="file"
+               name="profile_image"
+               class="form-control">
+    </div>
+
+    <div class="mb-3">
+        <label>License Image</label>
+        <input type="file"
+               name="license_image"
+               class="form-control">
+    </div>
+
+    <button class="btn btn-success">
+        Save Changes
+    </button>
+
+</form>
+
+{% endblock %}

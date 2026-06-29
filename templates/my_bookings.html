@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+    <h1>My Bookings</h1>
+
+    <table class="table table-bordered">
+
+        <tr>
+            <th>Car</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Total Amount</th>
+            <th>Status</th>
+            <th>Action</th>
+        </tr>
+
+        {% for booking in bookings %}
+        <tr>
+            <td>{{ booking.car }}</td>
+            <td>{{ booking.start_time }}</td>
+            <td>{{ booking.end_time }}</td>
+            <td>₹{{ booking.total_amount }}</td>
+            <td>{% if booking.status == "Upcoming" %}
+
+                <span class="badge bg-warning text-dark">
+                    Upcoming
+                </span>
+
+                {% elif booking.status == "Active" %}
+
+                <span class="badge bg-success">
+                    Active
+                </span>
+
+                {% elif booking.status == "Completed" %}
+
+                <span class="badge bg-secondary">
+                    Completed
+                </span>
+
+                {% elif booking.status == "Cancelled" %}
+
+                <span class="badge bg-danger">
+                    Cancelled
+                </span>
+
+                {% endif %}
+            </td>
+
+
+            <td>{% if booking.status == "Upcoming" %}
+
+                <a href="{% url 'booking_detail' booking.id %}"
+                class="btn btn-info btn-sm">
+                    👁 View Details
+                </a>
+
+                <a href="{% url 'edit_booking' booking.id %}"
+                class="btn btn-warning btn-sm">
+                    ✏ Modify Booking
+                </a>
+
+                <a href="{% url 'extend_booking' booking.id %}"
+                class="btn btn-primary btn-sm">
+                    ⏰ Extend Booking
+                </a>
+
+                <a href="{% url 'cancel_booking' booking.id %}"
+                class="btn btn-danger">
+                    Cancel Booking
+                </a>
+
+                {% elif booking.status == "Active" %}
+
+                <a href="{% url 'booking_detail' booking.id %}"
+                class="btn btn-info btn-sm">
+                    👁 View Details
+                </a>
+
+                <a href="{% url 'extend_booking' booking.id %}"
+                class="btn btn-primary btn-sm">
+                    ⏰ Extend Booking
+                </a>
+
+                {% elif booking.status == "Completed" or booking.status == "Cancelled" %}
+
+                <a href="{% url 'booking_detail' booking.id %}"
+                class="btn btn-info btn-sm">
+                    👁 View Details
+                </a>
+
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+
+    </table>
+
+</div>
+
+{% endblock %}

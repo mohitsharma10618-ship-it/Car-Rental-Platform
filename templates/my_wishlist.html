@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1 class="mb-4">My Wishlist ❤️</h1>
+
+<div class="row">
+
+{% for item in wishlist_items %}
+
+<div class="col-md-4 mb-4">
+
+    <div class="card">
+
+        {% if item.car.image %}
+        <img src="{{ item.car.image.url }}"
+             class="card-img-top"
+             style="height:200px; object-fit:cover;">
+        {% endif %}
+
+        <div class="card-body">
+
+            <h5>
+                {{ item.car.brand }}
+                {{ item.car.model }}
+            </h5>
+
+            <p>
+                ₹{{ item.car.rent_per_hour }}/hour
+            </p>
+
+            <a href="{% url 'car_detail' item.car.id %}"
+               class="btn btn-primary">
+               View Car
+            </a>
+
+            <a href="{% url 'remove_from_wishlist' item.id %}"
+                class="btn btn-danger">
+                Remove
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% empty %}
+
+<p>No cars in wishlist yet.</p>
+
+{% endfor %}
+
+</div>
+
+{% endblock %}

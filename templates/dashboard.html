@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<h1 class="mb-4">Dashboard</h1>
+
+<div class="row">
+
+    <div class="col-md-4">
+        <div class="card p-3">
+            <h4>Total Cars</h4>
+            <h2>{{ total_cars }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card p-3">
+            <h4>Total Bookings</h4>
+            <h2>{{ total_bookings }}</h2>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card p-3">
+            <h4>Total Revenue</h4>
+            <h2>₹{{ total_revenue }}</h2>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

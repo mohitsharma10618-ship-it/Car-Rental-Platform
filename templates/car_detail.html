@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+    <a href="/" class="btn btn-secondary mb-3">
+        Back
+    </a>
+
+    <div class="card border-0 shadow-lg">
+
+        <div class="card-body">
+
+            <div class="row">
+
+                <div class="col-md-6">
+
+                    {% if car.image %}
+                    <img id="mainCarImage"
+                        src="{{ car.image.url }}"
+                        class="img-fluid rounded shadow-lg mb-3"
+                        style="height:360px;
+                                width:100%;
+                                object-fit:contain;
+                                background:#f8f9fa;">
+                    {% endif %}
+
+                    <div class="row">
+
+                        {% for image in car_images %}
+
+                        <div class="col-3">
+
+                            <img src="{{ image.image.url }}"
+                                class="img-fluid rounded shadow-sm gallery-thumb"
+                                onclick="changeImage(this)"
+                                style="height:90px;
+                                        width:100%;
+                                        object-fit:cover;">
+
+                        </div>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-6">
+
+                    <h2 class="fw-bold">
+                        {{ car.brand }} {{ car.model }}
+                    </h2>
+
+                    <p class="text-muted">
+                        {{ car.year }} • {{ car.location }}
+                    </p>
+
+                    <h3 class="fw-bold text-success mb-4">
+                        ₹{{ car.rent_per_hour }}/hour
+                    </h3>
+
+                    <div class="mb-3">
+
+                        <h5>
+                            ⭐ Rating:
+                            {% if average_rating %}
+                                {{ average_rating|floatformat:1 }}/5
+                            {% else %}
+                                No Ratings Yet
+                            {% endif %}
+                        </h5>
+
+                    </div>
+
+                    <div class="row">
+
+                        <div class="col-6 mb-3">
+                            <strong>⛽ Fuel:</strong><br>
+                            {{ car.fuel_type }}
+                        </div>
+
+                        <div class="col-6 mb-3">
+                            <strong>⚙️ Transmission:</strong><br>
+                            {{ car.transmission }}
+                        </div>
+
+                        <div class="col-6 mb-3">
+                            <strong>👥 Seats:</strong><br>
+                            {{ car.seats }}
+                        </div>
+
+                        <div class="col-6 mb-3">
+                            <strong>❄️ AC:</strong><br>
+                            {% if car.ac %}
+                                Yes
+                            {% else %}
+                                No
+                            {% endif %}
+                        </div>
+
+                        <div class="col-6 mb-3">
+                            <strong>📍 Location:</strong><br>
+                            {{ car.location }}
+                        </div>
+
+                        <div class="col-6 mb-3">
+                            <strong>📅 Year:</strong><br>
+                            {{ car.year }}
+                        </div>
+
+                    </div>
+
+                    <hr>
+
+                    <h5>Description</h5>
+
+                    <p>
+                        {{ car.description }}
+                    </p>
+
+                </div>
+
+            </div>
+
+            <p>
+                
+                {% if car.available %}
+                    <span class="badge bg-success mb-3">
+                        Available Now
+                    </span>
+                {% else %}
+                    <span class="badge bg-danger mb-3">
+                        Currently Unavailable
+                    </span>
+                {% endif %}
+            </p>
+
+            <a href="{% url 'book_car' car.id %}"
+            class="btn btn-success btn-lg me-2">
+                Book Now
+            </a>
+
+            {% if is_in_wishlist %}
+
+            <button class="btn btn-success" disabled>
+                ❤️ Added To Wishlist
+            </button>
+
+            {% else %}
+
+            <a href="{% url 'add_to_wishlist' car.id %}"
+                class="btn btn-outline-danger btn-lg">
+                    ❤️ Wishlist
+            </a>
+
+            {% endif %}
+
+        </div>
+
+    </div>
+
+    <hr>
+
+    <h3>Customer Reviews</h3>
+
+    {% if user.is_authenticated and not can_review %}
+
+    <div class="alert alert-info">
+
+        You can review this car only after
+        completing a booking.
+
+    </div>
+
+    {% endif %}
+
+    {% if user.is_authenticated and can_review %}
+
+    <form method="POST" class="mb-4">
+
+        {% csrf_token %}
+
+        <div class="mb-3">
+
+            <label>Rating</label>
+
+            <select
+                name="rating"
+                class="form-select"
+                required>
+
+                <option value="5">⭐⭐⭐⭐⭐</option>
+                <option value="4">⭐⭐⭐⭐</option>
+                <option value="3">⭐⭐⭐</option>
+                <option value="2">⭐⭐</option>
+                <option value="1">⭐</option>
+
+            </select>
+
+        </div>
+
+        <div class="mb-3">
+
+            <label>Comment</label>
+
+            <textarea
+                name="comment"
+                class="form-control"
+                rows="3"
+                required></textarea>
+
+        </div>
+
+        <button class="btn btn-dark">
+            Submit Review
+        </button>
+
+    </form>
+
+    {% endif %}
+
+    {% for review in reviews %}
+
+    <div class="card shadow-sm mb-3">
+
+        <div class="card-body">
+
+            <h5>
+                {% for i in "12345" %}
+                    {% if forloop.counter <= review.rating %}
+                        ⭐
+                    {% endif %}
+                {% endfor %}
+            </h5>
+
+            <p>{{ review.comment }}</p>
+
+            <small class="text-muted">
+                - {{ review.user.username }}
+            </small>
+
+        </div>
+
+    </div>
+
+    {% empty %}
+
+    <p>No reviews yet.</p>
+
+    {% endfor %}
+    <script>
+
+    function changeImage(element) {
+        document.getElementById("mainCarImage").src = element.src;
+    }
+
+    </script>
+
+{% endblock %}

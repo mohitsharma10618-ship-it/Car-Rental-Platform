@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container mt-5">
+
+    <h2>Extend Booking</h2>
+
+    <hr>
+
+    <h4>{{ booking.car.brand }} {{ booking.car.model }}</h4>
+
+    <p>
+        Current End Time:
+        <strong>{{ booking.end_time }}</strong>
+    </p>
+
+</div>
+
+{% endblock %}
