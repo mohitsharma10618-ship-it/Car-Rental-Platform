@@ -78,5 +78,14 @@ path(
     name="end_trip",
 ),
         
-    
+path(
+    "booking/<int:booking_id>/payment/",
+    views.payment_page,
+    name="payment_page",
+),  
+path(
+    "payment-success/",
+    views.payment_success,
+    name="payment_success",
+),  
 ]

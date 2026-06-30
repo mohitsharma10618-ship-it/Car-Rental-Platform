@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="container mt-5">
+
+    <div class="card shadow">
+
+        <div class="card-body">
+
+            <h2 class="mb-4">
+                Payment
+            </h2>
+
+            <p>
+                <strong>Car:</strong>
+                {{ booking.car.brand }}
+                {{ booking.car.model }}
+            </p>
+
+            <p>
+                <strong>Total Amount:</strong>
+                ₹{{ booking.total_amount }}
+            </p>
+
+            <button
+                id="rzp-button"
+                class="btn btn-success">
+
+                💳 Pay ₹{{ booking.total_amount }}
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+<script>
+
+var options = {
+
+    "key": "{{ razorpay_key }}",
+
+    "amount": "{{ payment.amount }}",
+
+    "currency": "INR",
+
+    "name": "Car Rental Platform",
+
+    "description": "Booking Payment",
+
+    "order_id": "{{ payment.id }}",
+
+    "handler": function (response) {
+
+        window.location.href =
+        "/payment-success/?payment_id=" +
+        response.razorpay_payment_id +
+        "&order_id=" +
+        response.razorpay_order_id +
+        "&signature=" +
+        response.razorpay_signature;
+
+    },
+
+    "theme": {
+
+        "color": "#0d6efd"
+
+    }
+
+};
+
+var rzp = new Razorpay(options);
+
+document.getElementById("rzp-button").onclick = function(e){
+
+    rzp.open();
+
+    e.preventDefault();
+
+}
+
+</script>
+
+{% endblock %}

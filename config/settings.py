@@ -135,3 +135,6 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'mohitsharma10618@gmail.com'
 
 EMAIL_HOST_PASSWORD = 'gqti onml tvwq dbnd'
+
+RAZORPAY_KEY_ID = "rzp_test_T7rM2NJR8cul7n"
+RAZORPAY_KEY_SECRET = "3WXZ7YvoV5r13yW2qXOgyWgy"

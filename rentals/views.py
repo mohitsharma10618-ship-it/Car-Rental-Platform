@@ -14,6 +14,8 @@ from rentals.models import Profile
 from django.utils import timezone
 from decimal import Decimal
 from django.http import JsonResponse
+import razorpay
+from django.conf import settings
 
 
 
@@ -908,6 +910,103 @@ def end_trip(request, booking_id):
         booking_id=booking.id
     )
     
+@login_required
+def payment_page(request, booking_id):
+
+    booking = get_object_or_404(
+        Booking,
+        id=booking_id,
+        user=request.user
+    )
+
+    client = razorpay.Client(
+        auth=(
+            settings.RAZORPAY_KEY_ID,
+            settings.RAZORPAY_KEY_SECRET
+        )
+    )
+
+    amount = int(booking.total_amount * 100)
+
+    payment = client.order.create({
+
+        "amount": amount,
+
+        "currency": "INR",
+
+        "payment_capture": 1
+
+    })
+
+    booking.payment_order_id = payment["id"]
+
+    booking.save()
+
+    return render(
+        request,
+        "payment.html",
+        {
+            "booking": booking,
+            "payment": payment,
+            "razorpay_key": settings.RAZORPAY_KEY_ID,
+        }
+    )
+    
+@login_required
+def payment_success(request):
+
+    payment_id = request.GET.get("payment_id")
+    order_id = request.GET.get("order_id")
+    signature = request.GET.get("signature")
+
+    client = razorpay.Client(
+        auth=(
+            settings.RAZORPAY_KEY_ID,
+            settings.RAZORPAY_KEY_SECRET
+        )
+    )
+
+    try:
+
+        client.utility.verify_payment_signature({
+
+            "razorpay_order_id": order_id,
+
+            "razorpay_payment_id": payment_id,
+
+            "razorpay_signature": signature,
+
+        })
+
+    except:
+
+        messages.error(
+            request,
+            "Payment verification failed."
+        )
+
+        return redirect("my_bookings")
+
+    booking = Booking.objects.get(
+        payment_order_id=order_id
+    )
+
+    booking.payment_id = payment_id
+
+    booking.payment_status = "Paid"
+
+    booking.save()
+
+    messages.success(
+        request,
+        "Payment successful."
+    )
+
+    return redirect(
+        "booking_detail",
+        booking_id=booking.id
+    )
+
 
 
 
