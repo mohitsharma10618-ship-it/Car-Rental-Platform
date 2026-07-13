@@ -9,7 +9,7 @@
         <div class="card-body">
 
             <h2 class="mb-4">
-                Payment
+                {{ payment_title }}
             </h2>
 
             <p>
@@ -19,15 +19,23 @@
             </p>
 
             <p>
-                <strong>Total Amount:</strong>
-                ₹{{ booking.total_amount }}
+                <strong>Amount:</strong>
+                ₹{{ display_amount }}
             </p>
+
+            <div class="alert alert-warning text-center">
+
+                <strong>⏳ Complete your payment within</strong>
+
+                <h3 id="countdown" class="mt-2 text-danger"></h3>
+
+            </div>
 
             <button
                 id="rzp-button"
                 class="btn btn-success">
 
-                💳 Pay ₹{{ booking.total_amount }}
+                💳 Pay ₹{{ display_amount }}
 
             </button>
 
@@ -83,6 +91,43 @@ document.getElementById("rzp-button").onclick = function(e){
     e.preventDefault();
 
 }
+
+const bookedAt = new Date("{{ booking.booked_at|date:'c' }}").getTime();
+
+const expiryTime = bookedAt + (15 * 60 * 1000);
+
+const countdown = document.getElementById("countdown");
+
+const timer = setInterval(function () {
+
+    const now = new Date().getTime();
+
+    const distance = expiryTime - now;
+
+    if (distance <= 0) {
+
+        clearInterval(timer);
+
+        countdown.innerHTML = "Payment Expired";
+
+        alert("Your payment session has expired.");
+
+        window.location.href = "{% url 'my_bookings' %}";
+
+        return;
+
+    }
+
+    const minutes = Math.floor(distance / (1000 * 60));
+
+    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+    countdown.innerHTML =
+        String(minutes).padStart(2, "0")
+        + ":"
+        + String(seconds).padStart(2, "0");
+
+}, 1000);
 
 </script>
 

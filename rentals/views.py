@@ -16,6 +16,19 @@ from decimal import Decimal
 from django.http import JsonResponse
 import razorpay
 from django.conf import settings
+from django.http import HttpResponse
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.units import inch
+from django.core.mail import EmailMultiAlternatives
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
+from io import BytesIO
+import math
+from decimal import Decimal
+from datetime import timedelta
+
 
 
 
@@ -314,10 +327,11 @@ def book_car(request, car_id):
                 coupon = None
         
 
+        expire_pending_bookings()
+
         conflicting_booking = Booking.objects.filter(
-            car=car
-        ).exclude(
-            booking_status="Cancelled"
+            car=car,
+            booking_status__in=["Upcoming", "Active"]
         ).filter(
             start_time__lt=end,
             end_time__gt=start
@@ -345,6 +359,12 @@ def book_car(request, car_id):
             start_time=start,
             end_time=end,
             total_amount=total_amount,
+            estimated_amount=total_amount,
+            paid_amount=0,
+            final_amount=0,
+            refund_amount=0,
+            extra_amount=0,
+            billing_status="Settled",
             coupon=coupon,
             discount_amount=discount_amount
         )
@@ -353,29 +373,10 @@ def book_car(request, car_id):
 
             coupon.used_count += 1
             coupon.save()
-        send_mail(
-            subject='Car Booking Confirmation',
-            message=f'''
-        Hello {request.user.username},
-
-        Your booking has been confirmed.
-
-        Car: {car.brand} {car.model}
-
-        Start Time: {start}
-
-        End Time: {end}
-
-        Total Amount: ₹{total_amount}
-
-        Thank you for choosing our Car Rental Platform.
-        ''',
-            from_email='mohitsharma10618@gmail.com',
-            recipient_list=[request.user.email],
-            fail_silently=False,
-        )
-        return redirect('/')
+            
+        return redirect("payment_page", booking.id)
     
+    expire_pending_bookings()
     booked_slots = Booking.objects.filter(
         car=car,
         booking_status__in=["Upcoming", "Active"],
@@ -403,11 +404,27 @@ def book_car(request, car_id):
 
 @login_required
 def my_bookings(request):
-    bookings = Booking.objects.filter(user=request.user)
+
+    expire_pending_bookings()
+
+    confirmed_bookings = Booking.objects.filter(
+        user=request.user
+    ).exclude(
+        payment_status="Pending"
+    ).order_by("-booked_at")
+
+    pending_bookings = Booking.objects.filter(
+        user=request.user,
+        payment_status="Pending"
+    ).order_by("-booked_at")
+
     return render(
         request,
-        'my_bookings.html',
-        {'bookings': bookings}
+        "my_bookings.html",
+        {
+            "confirmed_bookings": confirmed_bookings,
+            "pending_bookings": pending_bookings,
+        }
     )
     
     
@@ -849,6 +866,13 @@ def start_trip(request, booking_id):
         id=booking_id,
         user=request.user
     )
+    
+    if booking.payment_status != "Paid":
+        messages.error(
+            request,
+            "Please complete the payment before starting the trip."
+        )
+        return redirect("booking_detail", booking.id)
 
     if booking.status != "Active":
 
@@ -895,8 +919,42 @@ def end_trip(request, booking_id):
     if booking.return_time is None:
 
         booking.return_time = timezone.now()
+        
+        actual_duration = booking.return_time - booking.pickup_time
 
-        booking.booking_status = "Completed"
+        actual_hours = math.ceil(
+            actual_duration.total_seconds() / 3600
+        )
+
+        actual_hours = max(1, actual_hours)
+
+        booking.final_amount = (
+            Decimal(actual_hours) * booking.car.rent_per_hour
+        )
+
+        # Customer returned early
+        if booking.paid_amount > booking.final_amount:
+
+            booking.refund_amount = (
+                booking.paid_amount - booking.final_amount
+            )
+
+            booking.extra_amount = 0
+
+        # Customer kept the car longer
+        elif booking.final_amount > booking.paid_amount:
+
+            booking.extra_amount = (
+                booking.final_amount - booking.paid_amount
+            )
+
+            booking.refund_amount = 0
+
+        # Exact timing
+        else:
+
+            booking.extra_amount = 0
+            booking.refund_amount = 0
 
         booking.save()
 
@@ -904,6 +962,15 @@ def end_trip(request, booking_id):
             request,
             "Trip completed successfully."
         )
+        
+        booking.booking_status = "Completed"
+
+        if booking.extra_amount > 0:
+            booking.billing_status = "Pending"
+        else:
+            booking.billing_status = "Settled"
+
+        booking.save()
 
     return redirect(
         "booking_detail",
@@ -918,6 +985,33 @@ def payment_page(request, booking_id):
         id=booking_id,
         user=request.user
     )
+    if (
+        booking.payment_status == "Pending"
+        and booking.booking_status == "Pending Payment"
+        and booking.booked_at <= timezone.now() - timedelta(minutes=15)
+    ):
+
+        booking.booking_status = "Cancelled"
+        booking.save(update_fields=["booking_status"])
+
+        messages.error(
+            request,
+            "Your payment session has expired. Please make a new booking."
+        )
+
+        return redirect("my_bookings")
+    if (
+        booking.payment_status == "Paid"
+        and booking.extra_amount == 0
+    ):
+        messages.info(
+            request,
+            "This booking has already been paid."
+        )
+        return redirect(
+            "booking_detail",
+            booking_id=booking.id
+        )
 
     client = razorpay.Client(
         auth=(
@@ -926,7 +1020,10 @@ def payment_page(request, booking_id):
         )
     )
 
-    amount = int(booking.total_amount * 100)
+    if booking.extra_amount > 0 and booking.billing_status == "Pending":
+        amount = int(booking.extra_amount * 100)
+    else:
+        amount = int(booking.estimated_amount * 100)
 
     payment = client.order.create({
 
@@ -939,8 +1036,13 @@ def payment_page(request, booking_id):
     })
 
     booking.payment_order_id = payment["id"]
-
-    booking.save()
+    booking.save(update_fields=["payment_order_id"])
+    if booking.extra_amount > 0 and booking.billing_status == "Pending":
+        display_amount = booking.extra_amount
+        payment_title = "Remaining Payment"
+    else:
+        display_amount = booking.estimated_amount
+        payment_title = "Booking Payment"
 
     return render(
         request,
@@ -949,6 +1051,8 @@ def payment_page(request, booking_id):
             "booking": booking,
             "payment": payment,
             "razorpay_key": settings.RAZORPAY_KEY_ID,
+            "display_amount": display_amount,
+            "payment_title": payment_title,
         }
     )
     
@@ -987,15 +1091,56 @@ def payment_success(request):
 
         return redirect("my_bookings")
 
-    booking = Booking.objects.get(
+    booking = get_object_or_404(
+        Booking,
         payment_order_id=order_id
     )
 
     booking.payment_id = payment_id
 
-    booking.payment_status = "Paid"
+    if booking.payment_status != "Paid":
+        # First payment
+        booking.payment_status = "Paid"
+        booking.booking_status = "Upcoming"
+
+        booking.paid_amount = booking.estimated_amount
+        booking.final_amount = booking.estimated_amount
+        booking.billing_status = "Settled"
+
+    else:
+        # Remaining payment after trip completion
+        booking.paid_amount += booking.extra_amount
+        booking.extra_amount = 0
+        booking.billing_status = "Settled"
 
     booking.save()
+    
+    
+    html_content = render_to_string(
+        "booking_confirmation.html",
+        {"booking": booking}
+    )
+
+    text_content = strip_tags(html_content)
+
+    email = EmailMultiAlternatives(
+        subject="Booking Confirmed - Car Rental Platform",
+        body=text_content,
+        from_email=settings.EMAIL_HOST_USER,
+        to=[booking.user.email],
+    )
+
+    email.attach_alternative(html_content, "text/html")
+
+    pdf = generate_invoice_pdf(booking)
+
+    email.attach(
+        f"Invoice_{booking.id}.pdf",
+        pdf,
+        "application/pdf",
+    )
+
+    email.send()
 
     messages.success(
         request,
@@ -1006,7 +1151,202 @@ def payment_success(request):
         "booking_detail",
         booking_id=booking.id
     )
+    
+@login_required
+def download_invoice(request, booking_id):
 
+    booking = get_object_or_404(
+        Booking,
+        id=booking_id,
+        user=request.user
+    )
+    pickup = booking.pickup_time if booking.pickup_time else booking.start_time
+    return_time = booking.return_time if booking.return_time else booking.end_time
+
+    pickup = timezone.localtime(pickup)
+    return_time = timezone.localtime(return_time)
+
+    if booking.payment_status != "Paid":
+        messages.error(request, "Invoice is available only after successful payment.")
+        return redirect("booking_detail", booking_id=booking.id)
+
+    response = HttpResponse(content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="Invoice_{booking.id}.pdf"'
+
+    doc = SimpleDocTemplate(response)
+    styles = getSampleStyleSheet()
+
+    elements = []
+
+    elements.append(
+        Paragraph("<b>Car Rental Platform</b>", styles["Title"])
+    )
+
+    elements.append(
+        Paragraph(f"Invoice No: INV-{booking.id}", styles["Normal"])
+    )
+
+    elements.append(
+        Paragraph(f"Booking ID: {booking.id}", styles["Normal"])
+    )
+
+    elements.append(
+        Paragraph(f"Customer: {booking.user.get_full_name() or booking.user.username}", styles["Normal"])
+    )
+
+    elements.append(
+        Paragraph(f"Email: {booking.user.email}", styles["Normal"])
+    )
+
+    elements.append(
+        Paragraph("<br/>", styles["Normal"])
+    )
+
+    data = [
+        ["Car", f"{booking.car.brand} {booking.car.model}"],
+        ["Pickup", pickup.strftime("%d %b %Y %I:%M %p")],
+        ["Return", return_time.strftime("%d %b %Y %I:%M %p")],
+        ["Payment ID", booking.payment_id or "-"],
+        ["Order ID", booking.payment_order_id or "-"],
+        ["Amount Paid", f"₹ {booking.total_amount}"],
+    ]
+
+    table = Table(data, colWidths=[2.5*inch, 4*inch])
+
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
+        ("GRID", (0,0), (-1,-1), 1, colors.black),
+        ("BACKGROUND", (0,1), (0,-1), colors.whitesmoke),
+        ("BOTTOMPADDING", (0,0), (-1,0), 10),
+    ]))
+
+    elements.append(table)
+
+    elements.append(
+        Paragraph("<br/><br/>Thank you for choosing Car Rental Platform.", styles["Heading2"])
+    )
+
+    doc.build(elements)
+
+    return response
+
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+
+def generate_invoice_pdf(booking):
+
+    buffer = BytesIO()
+    
+    pickup = booking.pickup_time if booking.pickup_time else booking.start_time
+    return_time = booking.return_time if booking.return_time else booking.end_time
+
+    pickup = timezone.localtime(pickup)
+    return_time = timezone.localtime(return_time)
+
+    doc = SimpleDocTemplate(buffer)
+
+    styles = getSampleStyleSheet()
+
+    elements = []
+
+    elements.append(
+        Paragraph("<b>Car Rental Platform</b>", styles["Title"])
+    )
+
+    elements.append(
+        Paragraph(f"Invoice No: INV-{booking.id}", styles["Normal"])
+    )
+
+    data = [
+        ["Car", f"{booking.car.brand} {booking.car.model}"],
+        ["Pickup", pickup.strftime("%d %b %Y %I:%M %p")],
+        ["Return", return_time.strftime("%d %b %Y %I:%M %p")],
+        ["Amount Paid", f"₹ {booking.total_amount}"],
+        ["Payment ID", booking.payment_id or "-"],
+    ]
+
+    table = Table(data, colWidths=[2.3*inch,4*inch])
+
+    table.setStyle(TableStyle([
+        ("GRID",(0,0),(-1,-1),1,colors.black),
+        ("BACKGROUND",(0,0),(-1,0),colors.lightgrey),
+    ]))
+
+    elements.append(table)
+
+    doc.build(elements)
+
+    pdf = buffer.getvalue()
+
+    buffer.close()
+
+    return pdf
+
+
+def expire_pending_bookings():
+
+    expiry_time = timezone.now() - timedelta(minutes=15)
+
+    expired_bookings = Booking.objects.filter(
+        payment_status="Pending",
+        booking_status="Pending Payment",
+        booked_at__lte=expiry_time
+    )
+
+    expired_bookings.update(
+        booking_status="Cancelled",
+        payment_status="Failed"
+    )
+    
+from django.contrib.admin.views.decorators import staff_member_required
+from django.db.models import Sum
+from django.contrib.auth.models import User
+
+@staff_member_required
+def admin_dashboard(request):
+
+    total_users = User.objects.count()
+
+    total_cars = Car.objects.count()
+
+    total_bookings = Booking.objects.count()
+
+    active_trips = Booking.objects.filter(
+        booking_status="Active"
+    ).count()
+
+    total_revenue = (
+        Booking.objects.filter(
+            payment_status="Paid"
+        ).aggregate(
+            total=Sum("paid_amount")
+        )["total"] or 0
+    )
+
+    pending_refunds = (
+        Booking.objects.filter(
+            billing_status="Refund Pending"
+        ).aggregate(
+            total=Sum("refund_amount")
+        )["total"] or 0
+    )
+
+    context = {
+        "total_users": total_users,
+        "total_cars": total_cars,
+        "total_bookings": total_bookings,
+        "active_trips": active_trips,
+        "total_revenue": total_revenue,
+        "pending_refunds": pending_refunds,
+    }
+
+    return render(
+        request,
+        "admin_dashboard.html",
+        context,
+    )
 
 
 

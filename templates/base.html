@@ -25,6 +25,12 @@
                     Dashboard
                 </a>
 
+                {% if user.is_staff %}
+                <a class="nav-link" href="{% url 'admin_dashboard' %}">
+                    📊 Admin Dashboard
+                </a>
+                {% endif %}
+
                 <a href="{% url 'profile' %}"
                     class="nav-link">
                         Profile

@@ -88,4 +88,14 @@ path(
     views.payment_success,
     name="payment_success",
 ),  
+path(
+    "invoice/<int:booking_id>/",
+    views.download_invoice,
+    name="download_invoice",
+),
+path(
+    "admin-dashboard/",
+    views.admin_dashboard,
+    name="admin_dashboard",
+),
 ]

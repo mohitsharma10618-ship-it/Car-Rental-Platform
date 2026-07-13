@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+
+<h2>🎉 Booking Confirmed</h2>
+
+<p>Hello <strong>{{ booking.user.get_full_name|default:booking.user.username }}</strong>,</p>
+
+<p>Your booking has been confirmed successfully.</p>
+
+<hr>
+
+<p><strong>Booking ID:</strong> #{{ booking.id }}</p>
+
+<p><strong>Car:</strong>
+{{ booking.car.brand }} {{ booking.car.model }}</p>
+
+<p><strong>Pickup:</strong>
+{{ booking.start_time }}</p>
+
+<p><strong>Return:</strong>
+{{ booking.end_time }}</p>
+
+<p><strong>Amount Paid:</strong>
+₹{{ booking.total_amount }}</p>
+
+<hr>
+
+<p>
+Thank you for choosing <strong>Car Rental Platform</strong>.
+</p>
+
+<p>Your invoice is attached with this email.</p>
+
+</body>
+</html>

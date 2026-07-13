@@ -77,15 +77,92 @@
                 </tr>
                 
                 <tr>
-                    <th>Total Amount</th>
+                    <th>Estimated Amount</th>
+                    <td>₹{{ booking.estimated_amount }}</td>
+                </tr>
+
+                <tr>
+                    <th>Paid Amount</th>
+                    <td>₹{{ booking.paid_amount }}</td>
+                </tr>
+
+                <tr>
+                    <th>Final Amount</th>
+                    <td>₹{{ booking.final_amount }}</td>
+                </tr>
+
+                <tr>
+                    <th>Refund Amount</th>
                     <td>
-                        ₹{{ booking.total_amount }}
+                        {% if booking.refund_amount > 0 %}
+                            <span class="text-success">
+                                ₹{{ booking.refund_amount }}
+                            </span>
+                        {% else %}
+                            ₹0
+                        {% endif %}
+                    </td>
+                </tr>
+
+                <tr>
+                    <th>Extra Amount</th>
+                    <td>
+                        {% if booking.extra_amount > 0 %}
+                            <span class="text-danger">
+                                ₹{{ booking.extra_amount }}
+                            </span>
+                        {% else %}
+                            ₹0
+                        {% endif %}
+                    </td>
+                </tr>
+
+                <tr>
+                    <th>Billing Status</th>
+                    <td>
+                        {% if booking.billing_status == "Settled" %}
+                            <span class="badge bg-success">
+                                Settled
+                            </span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">
+                                Pending
+                            </span>
+                        {% endif %}
                     </td>
                 </tr>
 
                 <tr>
                     <th>Status</th>
-                
+                    <td>
+
+                        {% if booking.status == "Upcoming" %}
+
+                            <span class="badge bg-warning text-dark">
+                                Upcoming
+                            </span>
+
+                        {% elif booking.status == "Active" %}
+
+                            <span class="badge bg-success">
+                                Active
+                            </span>
+
+                        {% elif booking.status == "Completed" %}
+
+                            <span class="badge bg-secondary">
+                                Completed
+                            </span>
+
+                        {% elif booking.status == "Cancelled" %}
+
+                            <span class="badge bg-danger">
+                                Cancelled
+                            </span>
+
+                        {% endif %}
+                    </td>
+                </tr>   
                 <tr>
 
                     <th>Pickup Time</th>
@@ -158,9 +235,30 @@
 
                 </tr>
 
+                <tr>
+                    <th>Payment Status</th>
+                    <td>
+                        {% if booking.payment_status == "Paid" %}
+                            <span class="badge bg-success">✅ Paid</span>
+                        {% else %}
+                            <span class="badge bg-warning text-dark">Pending</span>
+                        {% endif %}
+                    </td>
+                </tr>
+
             </table>
 
             <div class="mt-4">
+                {% if booking.payment_status == "Pending" %}
+
+                    <a href="{% url 'payment_page' booking.id %}"
+                    class="btn btn-warning">
+
+                        💳 Pay Now
+
+                    </a>
+
+                {% endif %}
 
                 {% if booking.status == "Active" and not booking.pickup_time %}
 
@@ -177,6 +275,29 @@
                     class="btn btn-danger">
 
                         🏁 End Trip
+
+                    </a>
+
+                {% endif %}
+
+                {% if booking.payment_status == "Paid" %}
+
+                    <a href="{% url 'download_invoice' booking.id %}"
+
+                    class="btn btn-primary">
+
+                        📄 Download Invoice
+
+                    </a>
+
+                {% endif %}
+
+                {% if booking.extra_amount > 0 and booking.billing_status == "Pending" %}
+
+                    <a href="{% url 'payment_page' booking.id %}"
+                    class="btn btn-warning">
+
+                        💳 Pay Remaining ₹{{ booking.extra_amount }}
 
                     </a>
 

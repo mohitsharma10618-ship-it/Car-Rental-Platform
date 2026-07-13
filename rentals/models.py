@@ -89,6 +89,49 @@ class Booking(models.Model):
         decimal_places=2    
     )
     
+    estimated_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0
+    )
+
+    paid_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0
+    )
+
+    final_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0
+    )
+
+    refund_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0
+    )
+
+    extra_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0
+    )
+
+    BILLING_STATUS = [
+        ("Settled", "Settled"),
+        ("Refund Pending", "Refund Pending"),
+        ("Extra Payment Pending", "Extra Payment Pending"),
+        ("Refunded", "Refunded"),
+    ]
+
+    billing_status = models.CharField(
+        max_length=30,
+        choices=BILLING_STATUS,
+        default="Settled"
+    )
+    
     coupon = models.ForeignKey(
         "Coupon",
         on_delete=models.SET_NULL,
@@ -128,12 +171,13 @@ class Booking(models.Model):
     booking_status = models.CharField(
         max_length=20,
         choices=[
+            ("Pending Payment", "Pending Payment"),
             ("Upcoming", "Upcoming"),
             ("Active", "Active"),
             ("Completed", "Completed"),
             ("Cancelled", "Cancelled"),
         ],
-        default="Upcoming"
+        default="Pending Payment"
     )
 
     booked_at = models.DateTimeField(auto_now_add=True)
