@@ -1,7 +1,3 @@
-from tracemalloc import start
-
-from django.db import models
-from django.utils import timezone
 
 from tracemalloc import start
 
