@@ -31,6 +31,10 @@ ALLOWED_HOSTS = [
     "127.0.0.1",
     "localhost",
     ".onrender.com",
+    "car-rental-platform-vr34.onrender.com",
+]
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.onrender.com",
 ]
 
 
